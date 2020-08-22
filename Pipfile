@@ -9,6 +9,10 @@ verify_ssl = true
 spotify = "==0.8.3"
 pygit2 = "*"
 derw = {git = "https://github.com/notderw/python-util"}
+colorama = "*"
+beautifulsoup4 = "*"
+fake-headers = "*"
+aiohttp = "*"
 
 [requires]
 python_version = "3.8"

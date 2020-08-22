@@ -11,6 +11,9 @@ from typing import List
 
 import spotify
 import pygit2
+from aiohttp import ClientSession
+from fake_headers import Headers
+from bs4 import BeautifulSoup
 
 from derw import log
 
@@ -97,6 +100,8 @@ class DewsBeats():
             self.saved_tracks.sort(key=lambda x: x.added_at)
 
             await self.update_playlist()
+
+            await self.update_mimo()
 
             await self.update_git()
 
@@ -355,9 +360,89 @@ class DewsBeats():
             await playlist.add_tracks(track)
             await asyncio.sleep(1)
 
+    async def update_mimo(self):
+        pl = spotify.Playlist(client = self.client, data = await self.client.http.get_playlist('62Wdnd2oq36OIRAQdf77OR'), http = self.user.http)
+        trackids = [track.id for track in pl.tracks]
+
+        tracks = []
+
+        mimo = MiMo()
+
+        async for songid in mimo.get_songs():
+            track = await self.client.get_track(songid)
+            if track.id not in trackids:
+                if len(tracks) == 100:
+                    await pl.add_tracks(*tracks)
+                    tracks = []
+                else:
+                    tracks.append(track)
+
+                trackids.append(track.id)
+
+        if tracks:
+            await pl.add_tracks(*tracks)
+
+        await mimo.close()
+
     async def close(self):
         await self.client.close()
         await self.user.http.close()
+
+re_media = re.compile(r"new MediaViewer\(this, 'tlp_\d*', \{(.*)\} \);")
+class MiMo:
+    DOMAIN = 'https://www.1001tracklists.com'
+
+    def __init__(self):
+        self.http = ClientSession(headers = Headers(browser='firefox', os='win').generate())
+
+    async def get_songs(self):
+        async for tl in self.get_tracklists():
+            print(f'Pulling list {tl}')
+            async for media in self.parse_tracklist(tl):
+                yield await self.get_medialink(media)
+
+                await asyncio.sleep(1)
+
+    async def get_tracklists(self):
+        page = 0
+        while page >= 0:
+            print(f'Page {page}')
+            index = f'index{page}.html' if page > 1 else 'index.html'
+            async with self.http.get(f'{self.DOMAIN}/dj/missmonique/{index}') as r:
+                soup = BeautifulSoup(await r.text(), "html.parser")
+
+                if page == 0:
+                    page = len(soup.select('.pagination li')) - 2
+                    continue
+
+                for a in reversed(soup.find_all('div', class_='tlLink')):
+                    yield a.find('a', href=True)['href']
+
+                page -= 1
+
+                if page == 0:
+                    break
+
+    async def parse_tracklist(self, url):
+        async with self.http.get(f'{self.DOMAIN}{url}') as r:
+            for item in reversed(BeautifulSoup(await r.text(), "html.parser").find_all(class_='tlpItem')):
+                btn = item.select('.fa-spotify.mediaAction')
+                if not btn:
+                    continue
+
+                media = list(filter(None, re_media.findall(btn[0]['onclick'])))
+                if not media:
+                    continue
+
+                yield {m[0].strip(): m[1].strip() for m in [l.split(':') for l in media[0].replace('\'', '').split(',')]}
+
+    async def get_medialink(self, params):
+        async with self.http.get(f'{self.DOMAIN}/ajax/get_medialink.php', params = params) as r:
+            data = await r.json()
+            return data['data'][0]['playerId']
+
+    async def close(self):
+        await self.http.close()
 
 
 loop = asyncio.get_event_loop()
