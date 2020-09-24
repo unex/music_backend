@@ -101,7 +101,8 @@ class DewsBeats():
 
             await self.update_playlist()
 
-            await self.update_mimo()
+            if datetime.utcnow().weekday() == 0:
+                await self.update_mimo()
 
             await self.update_git()
 
