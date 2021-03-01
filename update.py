@@ -103,8 +103,11 @@ class DewsBeats():
 
             await self.update_playlist()
 
-            if datetime.utcnow().weekday() == 0:
-                await self.update_mimo()
+            try:
+                if datetime.utcnow().weekday() == 0:
+                    await self.update_mimo()
+            except:
+                traceback.print_exc()
 
             await self.update_git()
 
@@ -382,7 +385,7 @@ class DewsBeats():
         async for songid in mimo.get_songs():
             track = await self.client.get_track(songid)
             if track.id not in trackids:
-                    tracks.append(track)
+                tracks.append(track)
                 trackids.append(track.id)
 
         while tracks:
