@@ -15,7 +15,9 @@ from aiohttp import ClientSession
 from fake_headers import Headers
 from bs4 import BeautifulSoup
 
-from derw import log
+from derw import makeLogger
+
+log = makeLogger(__file__)
 
 # SPOTIFY
 SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
