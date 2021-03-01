@@ -365,6 +365,14 @@ class DewsBeats():
 
     async def update_mimo(self):
         pl = spotify.Playlist(client = self.client, data = await self.client.http.get_playlist('62Wdnd2oq36OIRAQdf77OR'), http = self.user.http)
+
+        # we have to set this or the spotify library thinks
+        # the playlist only has 100 tracks cuz bad code smh
+        # I would fix it myself but I am lazy
+        # https://github.com/mental32/spotify.py/blob/25149bc4d100b42f3dc6908746a45e0fb29a0ae7/spotify/models/playlist.py#L181
+        pl.total_tracks = None
+        pl.tracks = await pl.get_all_tracks()
+
         trackids = [track.id for track in pl.tracks]
 
         tracks = []
@@ -374,16 +382,12 @@ class DewsBeats():
         async for songid in mimo.get_songs():
             track = await self.client.get_track(songid)
             if track.id not in trackids:
-                if len(tracks) == 100:
-                    await pl.add_tracks(*tracks)
-                    tracks = []
-                else:
                     tracks.append(track)
-
                 trackids.append(track.id)
 
-        if tracks:
-            await pl.add_tracks(*tracks)
+        while tracks:
+            await pl.add_tracks(*tracks[-100:])
+            tracks = tracks[:len(tracks)-100]
 
         await mimo.close()
 
