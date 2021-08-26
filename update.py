@@ -2,7 +2,6 @@ import os
 import re
 import asyncio
 import traceback
-import csv
 import glob
 import time
 
@@ -38,6 +37,8 @@ GIT_REPO = os.environ.get("GIT_REPO")
 GIT_USERNAME = os.environ.get("GIT_USERNAME")
 GIT_EMAIL = os.environ.get("GIT_EMAIL")
 GIT_PASSWORD = os.environ.get("GIT_PASSWORD")
+
+RE_MARKDOWN = re.compile(r'\|')
 
 class Git():
     def __init__(self):
@@ -162,6 +163,10 @@ class DewsBeats():
 
         _dir = os.path.relpath(GIT_REPO)
 
+        lib_md = await aiofiles.open(os.path.join(_dir,'LIBRARY.md'), 'w')
+
+        await lib_md.writelines("# Library\n\n")
+
         # ================================
         #    SAVED TRACKS & PLAYLISTS
         # ================================
@@ -186,7 +191,14 @@ class DewsBeats():
         for filename in glob.glob(f'{playlist_dir}/*.csv'):
             os.remove(filename)
 
-        for playlist in await self.user.get_all_playlists():
+        await lib_md.write("## Playlists\n\n")
+        await lib_md.write("|Name|Author|Description||\n")
+        await lib_md.write("--- | --- | --- | ---\n")
+
+        playlists = await self.user.get_all_playlists()
+        playlists.sort(key=lambda x: x.name)
+
+        for playlist in playlists:
             # Ignore the mirror playlist just cuz its a duplicate of saved tracks
             if playlist.id == SPOTIFY_MIRROR_PLAYLIST:
                 continue
@@ -222,14 +234,25 @@ class DewsBeats():
 
             log.debug(f'- Playlist {playlist.name}')
 
+            name = RE_MARKDOWN.sub(r'\\\g<0>', playlist.name)
+            desc = RE_MARKDOWN.sub(r'\\\g<0>', playlist.description)
+
+            await lib_md.write(f"|{name}|{playlist.owner.display_name}|{desc}|[open]({playlist.url})|\n")
+
         # ================================
         #             ARTISTS
         # ================================
 
-        fields = ["name", "id", "url"]
+        await lib_md.write("\n")
+        await lib_md.write("## Artists\n\n")
+        await lib_md.write("||Name||\n")
+        await lib_md.write("--- | --- | ---\n")
+
 
         artists = [artist async for artist in self.get_follwing_artists()]
         artists.sort(key=lambda x: x.name)
+
+        await lib_md.writelines([f"|<img src='{a.images[-1].url}' height=32>|{a.name}|[open]({a.url})|\n" for a in artists])
 
         data = [{
             "name": artist.name,
@@ -248,10 +271,15 @@ class DewsBeats():
         #             ALBUMS
         # ================================
 
-        fields = ["name", "artist", "id", "url"]
+        await lib_md.write("\n")
+        await lib_md.write("## Albums\n\n")
+        await lib_md.write("|Name|Artists||\n")
+        await lib_md.write("--- | --- | ---\n")
 
         albums = list(await self.library.get_all_albums())
         albums.sort(key=lambda x: x.name)
+
+        await lib_md.writelines([f"|{a.name}|{', '.join([f'[{ar.name}]({ar.url})' for ar in a.artists])}|[open]({a.url})|\n" for a in albums])
 
         data = [{
             "name": album.name,
@@ -266,6 +294,8 @@ class DewsBeats():
         )
 
         log.debug("- Albums")
+
+        await lib_md.close()
 
     async def write_csv(self, file, data: List, fields: List = None):
         async with aiofiles.open(file, 'w') as f:
