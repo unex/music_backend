@@ -398,12 +398,14 @@ class DewsBeats():
         await self.client.close()
         await self.user.http.close()
 
-re_media = re.compile(r"new MediaViewer\(this, 'tlp_\d*', \{(.*)\} \);")
+RE_TRACKLIST_LINK = re.compile(r"onclick=\"window.open\(\'(.*)',")
+RE_MEDIA = re.compile(r"new MediaViewer\(this, .*, \{(.*)\} \);")
+
 class MiMo:
     DOMAIN = 'https://www.1001tracklists.com'
 
     def __init__(self):
-        self.http = ClientSession(headers = Headers(browser='firefox', os='win').generate())
+        self.http = ClientSession(headers = Headers(browser='firefox', os='win').generate(), raise_for_status=True)
 
     async def get_songs(self):
         async for tl in self.get_tracklists():
@@ -425,8 +427,12 @@ class MiMo:
                     page = len(soup.select('.pagination li')) - 2
                     continue
 
-                for a in reversed(soup.find_all('div', class_='tlLink')):
-                    yield a.find('a', href=True)['href']
+                res = soup.find_all('div', class_=['bItm', 'action', 'oItm'])
+                res.reverse()
+
+                for t in res:
+                    if link := RE_TRACKLIST_LINK.findall(str(t)):
+                        yield link[0]
 
                 page -= 1
 
@@ -435,12 +441,12 @@ class MiMo:
 
     async def parse_tracklist(self, url):
         async with self.http.get(f'{self.DOMAIN}{url}') as r:
-            for item in reversed(BeautifulSoup(await r.text(), "html.parser").find_all(class_='tlpItem')):
-                btn = item.select('.fa-spotify.mediaAction')
+            for item in reversed(BeautifulSoup(await r.text(), "html.parser").find_all(class_='mediaRow')):
+                btn = item.select('.fa-spotify.mAction')
                 if not btn:
                     continue
 
-                media = list(filter(None, re_media.findall(btn[0]['onclick'])))
+                media = list(filter(None, RE_MEDIA.findall(btn[0]['onclick'])))
                 if not media:
                     continue
 
