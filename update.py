@@ -11,6 +11,7 @@ from typing import List
 
 import spotify
 import pygit2
+import aiofiles
 from aiohttp import ClientSession
 from fake_headers import Headers
 from bs4 import BeautifulSoup
@@ -80,6 +81,19 @@ class Git():
 
         self.repo.remotes["origin"].push([ref], callbacks=self.remote)
 
+
+def make_csv(d: List[str]):
+    ret = []
+    for s in d:
+        if s is None:
+            s = ''
+        if set([',', '"']).intersection(s):
+            s = s.replace('"', '""')
+            ret.append(f'"{s}"')
+        else:
+            ret.append(s)
+
+    return ','.join(ret)
 
 class DewsBeats():
     def __init__(self):
@@ -152,8 +166,6 @@ class DewsBeats():
         #    SAVED TRACKS & PLAYLISTS
         # ================================
 
-        fields = ["title", "album", "artist", "id", "url"]
-
         data = [{
             "title": track.name,
             "album": track.album.name,
@@ -162,10 +174,8 @@ class DewsBeats():
             "url": track.url
         } for track in self.saved_tracks]
 
-        self.write_csv(
+        await self.write_csv(
             os.path.join(_dir,'Saved Songs.csv'),
-            "Saved Songs",
-            fields,
             data
         )
 
@@ -205,10 +215,8 @@ class DewsBeats():
 
             filename = re.sub(r"[^\w\d\s-]", "_", playlist.name)
 
-            self.write_csv(
+            await self.write_csv(
                 os.path.join(_dir, f'playlists/{filename}.csv'),
-                f'{playlist.name}, By {playlist.owner.display_name}, {playlist.url}',
-                fields,
                 data
             )
 
@@ -229,10 +237,8 @@ class DewsBeats():
             "url": artist.url
         } for artist in artists]
 
-        self.write_csv(
+        await self.write_csv(
             os.path.join(_dir,'Artists.csv'),
-            "Artists",
-            fields,
             data
         )
 
@@ -254,24 +260,21 @@ class DewsBeats():
             "url": album.url
         } for album in albums]
 
-        self.write_csv(
+        await self.write_csv(
             os.path.join(_dir,'Albums.csv'),
-            "Albums",
-            fields,
             data
         )
 
         log.debug("- Albums")
 
-    def write_csv(self, file, header, fields: List, data: List):
-        with open(file, 'w') as csvfile:
-            if header:
-                csvfile.write(f'# {header}\n')
+    async def write_csv(self, file, data: List, fields: List = None):
+        async with aiofiles.open(file, 'w') as f:
+            if not fields:
+                fields = list(data[0].keys())
 
-            writer = csv.DictWriter(csvfile, fieldnames=fields)
+            await f.write(make_csv(fields) + '\n')
 
-            writer.writeheader()
-            writer.writerows(data)
+            await f.writelines([f"{make_csv(list(l.values()))}\n" for l in data])
 
     async def get_follwing_artists(self):
         """
