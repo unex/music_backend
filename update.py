@@ -4,6 +4,7 @@ import asyncio
 import traceback
 import glob
 import time
+import logging
 
 from datetime import date, datetime, timedelta
 from typing import List
@@ -18,6 +19,7 @@ from bs4 import BeautifulSoup
 from derw import makeLogger
 
 log = makeLogger(__file__)
+log.setLevel(logging.DEBUG)
 
 # SPOTIFY
 SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
