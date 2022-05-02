@@ -1,6 +1,6 @@
-# Dews Beats Backend
+# Beats Backend
 
-The scripting that updates [this repo](https://github.com/notderw/dews_beats)
+The scripting that updates [this repo](https://github.com/unex/music)
 
 ## Installation
 
