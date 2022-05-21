@@ -6,8 +6,7 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-spotify = {git = "https://github.com/mental32/spotify.py"}
-pygit2 = "*"
+async-spotify = "*"
 derw = {git = "https://github.com/notderw/python-util"}
 colorama = "*"
 beautifulsoup4 = "*"
@@ -15,6 +14,10 @@ fake-headers = "*"
 aiohttp = "*"
 backoff = "*"
 aiofiles = "*"
+pydantic = "*"
 
 [requires]
-python_version = "3.8"
+python_version = "3.10"
+
+[scripts]
+update = "python update.py"
