@@ -21,3 +21,4 @@ python_version = "3.10"
 
 [scripts]
 update = "python update.py"
+tracklists = "python tracklists.py"
