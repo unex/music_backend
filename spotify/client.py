@@ -13,6 +13,7 @@ from .endpoints.user import UserEndpoint
 from .endpoints.library import LibraryEndpoint
 from .endpoints.playlists import PlaylistsEndpoint
 from .endpoints.follow import FollowEndpoint
+from .endpoints.track import TrackEndpoint
 
 
 class SpotifyClient:
@@ -39,6 +40,7 @@ class SpotifyClient:
         self.library = LibraryEndpoint(self.api)
         self.playlists = PlaylistsEndpoint(self.api)
         self.follow = FollowEndpoint(self.api)
+        self.track = TrackEndpoint(self.api)
 
     async def _update_refresh_token(self):
         authorization_url: str = self.api.build_authorization_url(show_dialog=True)
