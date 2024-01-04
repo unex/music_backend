@@ -259,7 +259,7 @@ class DewsBeats:
 
             filename = re.sub(r"[^\w\d\s-]", "_", playlist.name)
 
-            await self.write_csv(os.path.join(_dir, f"playlists/{filename}.csv"), data)
+            await self.write_csv(os.path.join(_dir, f"playlists/{filename}.csv"), data, fields = ["title", "album", "artist", "id", "url"])
 
             log.debug(f"- Playlist {playlist.name}")
 
