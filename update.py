@@ -198,6 +198,8 @@ class DewsBeats:
         #    SAVED TRACKS & PLAYLISTS
         # ================================
 
+        log.debug("- Saved Tracks")
+
         data = [
             {
                 "title": track.track.name,
@@ -211,8 +213,6 @@ class DewsBeats:
 
         await self.write_csv(os.path.join(_dir, "Saved Songs.csv"), data)
 
-        log.debug("- Saved Tracks")
-
         # delete playlist csv files and then re-populate for ez deletion handling
         playlist_dir = os.path.join(_dir, "playlists")
         for filename in glob.glob(f"{playlist_dir}/*.csv"):
@@ -223,6 +223,8 @@ class DewsBeats:
         await lib_md.write("--- | --- | --- | ---\n")
 
         for playlist in self.playlists:
+            log.debug(f"- Playlist {playlist.name}")
+
             # Ignore the mirror playlist just cuz its a duplicate of saved tracks
             if playlist.id == SPOTIFY_MIRROR_PLAYLIST:
                 continue
@@ -261,8 +263,6 @@ class DewsBeats:
 
             await self.write_csv(os.path.join(_dir, f"playlists/{filename}.csv"), data, fields = ["title", "album", "artist", "id", "url"])
 
-            log.debug(f"- Playlist {playlist.name}")
-
             name = RE_MARKDOWN.sub(r"\\\g<0>", playlist.name)
             desc = RE_MARKDOWN.sub(r"\\\g<0>", playlist.description)
 
@@ -273,6 +273,8 @@ class DewsBeats:
         # ================================
         #             ARTISTS
         # ================================
+
+        log.debug("- Artists")
 
         await lib_md.write("\n")
         await lib_md.write("## Artists\n\n")
@@ -296,11 +298,11 @@ class DewsBeats:
 
         await self.write_csv(os.path.join(_dir, "Artists.csv"), data)
 
-        log.debug("- Artists")
-
         # ================================
         #             ALBUMS
         # ================================
+
+        log.debug("- Albums")
 
         await lib_md.write("\n")
         await lib_md.write("## Albums\n\n")
@@ -328,8 +330,6 @@ class DewsBeats:
         ]
 
         await self.write_csv(os.path.join(_dir, "Albums.csv"), data)
-
-        log.debug("- Albums")
 
         await lib_md.close()
 
